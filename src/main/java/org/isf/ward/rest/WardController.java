@@ -40,8 +40,9 @@ public class WardController {
     @Autowired
     protected WardMapper mapper;
 
-    public WardController(WardBrowserManager wardManager) {
+    public WardController(WardBrowserManager wardManager, WardMapper wardMapper) {
         this.wardManager = wardManager;
+        this.mapper =  wardMapper;
     }
 
     /**
@@ -87,10 +88,10 @@ public class WardController {
      * @return BAD_REQUEST if there are some problem, integer otherwise
      * @throws OHServiceException
      */
-    @GetMapping(value = "/wards/occupation", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Integer> getCurrentOccupation(@RequestBody WardDTO wardDto) throws OHServiceException {
-        logger.info("Get current occupation ward code: " + wardDto.getCode());
-        Ward ward = mapper.map2Model(wardDto);
+    @GetMapping(value = "/wards/occupation/{code}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Integer> getCurrentOccupation(@PathVariable String code) throws OHServiceException {
+    	logger.info("Get current occupation ward code: {}", code);
+        Ward ward = wardManager.findWard(code);
         Integer numberOfPatients = wardManager.getCurrentOccupation(ward);
         if (numberOfPatients == -1) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
@@ -141,14 +142,20 @@ public class WardController {
      * @return an error message if there are some problem, ok otherwise
      * @throws OHServiceException
      */
-    @DeleteMapping(value = "/wards", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity deleteWard(@RequestBody WardDTO wardToDelete) throws OHServiceException {
-        logger.info("Delete Ward with code: " + wardToDelete.getCode());
-        boolean isDeleted = wardManager.deleteWard(mapper.map2Model(wardToDelete));
-        if (!isDeleted) {
-            throw new OHAPIException(new OHExceptionMessage(null, "Wards is not deleted!", OHSeverityLevel.ERROR));
+    @DeleteMapping(value = "/wards/{code}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity deleteWard(@PathVariable String code) throws OHServiceException {
+        logger.info("Delete Ward with code: {}", code);
+        boolean isDeleted = false;
+        Ward ward = wardManager.findWard(code);
+        if (ward!=null){
+            isDeleted = wardManager.deleteWard(ward);
+            if (!isDeleted) {
+                throw new OHAPIException(new OHExceptionMessage(null, "Wards is not deleted!", OHSeverityLevel.ERROR));
+            }
+            return ResponseEntity.ok(isDeleted);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
-        return ResponseEntity.ok(null);
     }
 
     /**
@@ -173,10 +180,10 @@ public class WardController {
      * @return <code>true</code> if the Maternity {@link Ward} exists, <code>false</code> otherwise.
      * @throws OHServiceException
      */
-    @GetMapping(value = "/wards/check/{createIfNotExist}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Boolean> checkWardMaternityCode(@PathVariable Boolean createIfNotExits) throws OHServiceException {
+    @GetMapping(value = "/wards/check/maternity/{createIfNotExist}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Boolean> checkWardMaternityCode(@PathVariable Boolean createIfNotExist) throws OHServiceException {
         logger.info("Check ward maternity code");
-        boolean check = wardManager.maternityControl(createIfNotExits);
+        boolean check = wardManager.maternityControl(createIfNotExist);
         return ResponseEntity.ok(check);
     }
 

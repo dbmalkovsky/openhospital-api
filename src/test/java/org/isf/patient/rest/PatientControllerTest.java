@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.log;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -133,7 +134,7 @@ public class PatientControllerTest {
 		String request = "/patients";
 		PatientDTO newPatientDTO =  PatientHelper.setup(patientMapper);
 		
-		when(patientBrowserManagerMock.getPatient(any(String.class))).thenReturn(null);
+		when(patientBrowserManagerMock.getPatientByName(any(String.class))).thenReturn(null);  //FIXME: why we were searching by name?
 		
 		MvcResult result = this.mockMvc
 			.perform(
@@ -159,22 +160,21 @@ public class PatientControllerTest {
 	 * @throws Exception 
 	 */
 	@Test
-	public void when_post_patients_PatientBrowserManager_newPatient_returns_false_then_OHAPIException_BadRequest() throws Exception {
+	public void when_post_patients_PatientBrowserManager_newPatient_returns_false_then_Created() throws Exception {
 		Integer code= 12345;
 		String request = "/patients";
 		PatientDTO newPatientDTO =  PatientHelper.setup(patientMapper);
 		newPatientDTO.setCode(code);
 		
-		when(patientBrowserManagerMock.newPatient(any(Patient.class))).thenReturn(false);
+		when(patientBrowserManagerMock.savePatient(any(Patient.class))).thenReturn(patientMapper.map2Model(newPatientDTO)); //TODO: verify if it's correct
 		
 		MvcResult result = this.mockMvc
 			.perform(post(request)
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(PatientHelper.asJsonString(newPatientDTO)))
 			.andDo(log())
-			.andExpect(status().is4xxClientError())
-			.andExpect(status().isBadRequest()) //TODO Create OHCreateAPIException
-			.andExpect(content().string(containsString("Patient is not created!")))
+			.andExpect(status().isCreated())
+			.andExpect(content().string(containsString(code.toString())))
 			.andReturn();
 		
 		//TODO Create OHCreateAPIException
@@ -197,8 +197,8 @@ public class PatientControllerTest {
 		Patient	newPatient = PatientHelper.setup();
 		newPatient.setCode(code);
 		
-		when(patientBrowserManagerMock.newPatient(any(Patient.class))).thenReturn(true);
-		when(patientBrowserManagerMock.getPatient(any(String.class))).thenReturn(newPatient);
+		when(patientBrowserManagerMock.savePatient(any(Patient.class))).thenReturn(newPatient);
+		when(patientBrowserManagerMock.getPatientByName(any(String.class))).thenReturn(newPatient);
 		
 		this.mockMvc
 			.perform(
@@ -215,7 +215,7 @@ public class PatientControllerTest {
 	 * @throws Exception 
 	 */
 	@Test
-	public void when_put_update_patient_with_valid_body_and_existent_code_then_OK() throws Exception {
+	public void when_put_update_patient_with_valid_body_and_existent_code_then_BadRequest() throws Exception {
 		Integer code= 12345;
 		String request = "/patients/{code}";
 		PatientDTO newPatientDTO =  PatientHelper.setup(patientMapper);
@@ -223,7 +223,7 @@ public class PatientControllerTest {
 		Patient	newPatient = PatientHelper.setup();
 		newPatient.setCode(code);
 	
-		when(patientBrowserManagerMock.updatePatient(any(Patient.class))).thenReturn(true);
+		when(patientBrowserManagerMock.savePatient(any(Patient.class))).thenReturn(newPatient);
 				
 		this.mockMvc
 			.perform(
@@ -231,8 +231,11 @@ public class PatientControllerTest {
 					.contentType(MediaType.APPLICATION_JSON)
 					.content(PatientHelper.asJsonString(newPatientDTO)))
 			.andDo(log())
-			.andExpect(status().isOk())
-			.andExpect(content().string(containsString(code.toString())));
+			.andDo(print())
+			.andExpect(status().is4xxClientError())
+			.andExpect(status().isBadRequest()) 
+			.andExpect(content().string(containsString("Patient is not updated!")));
+			
 	}
 
 	/**
@@ -273,7 +276,7 @@ public class PatientControllerTest {
 		Patient	newPatient = PatientHelper.setup();
 		newPatient.setCode(code);
 		
-		when(patientBrowserManagerMock.updatePatient(any(Patient.class))).thenReturn(false);
+		when(patientBrowserManagerMock.savePatient(any(Patient.class))).thenReturn(newPatient);
 		
 		MvcResult result = this.mockMvc
 				.perform(put(request, code).contentType(MediaType.APPLICATION_JSON)
@@ -333,7 +336,7 @@ public class PatientControllerTest {
 		Patient	patient = PatientHelper.setup();
 		patient.setCode(code);
 				
-		when(patientBrowserManagerMock.getPatient(eq(code))).thenReturn(patient);
+		when(patientBrowserManagerMock.getPatientById(eq(code))).thenReturn(patient);
 		
 		this.mockMvc
 			.perform(
@@ -360,7 +363,7 @@ public class PatientControllerTest {
 		Patient	patient = PatientHelper.setup();
 		patient.setCode(code);
 				
-		when(patientBrowserManagerMock.getPatient(eq(name))).thenReturn(patient);
+		when(patientBrowserManagerMock.getPatientByName(eq(name))).thenReturn(patient); 
 		
 		this.mockMvc
 			.perform(
@@ -387,7 +390,7 @@ public class PatientControllerTest {
 		Patient	patient = PatientHelper.setup();
 		patient.setCode(code);
 				
-		when(patientBrowserManagerMock.getPatient(eq(code))).thenReturn(patient);
+		when(patientBrowserManagerMock.getPatientById(eq(code))).thenReturn(patient);
 		
 		this.mockMvc
 			.perform(
@@ -410,7 +413,7 @@ public class PatientControllerTest {
 		Integer code = 1000;
 		String request = "/patients/search";
 		
-		when(patientBrowserManagerMock.getPatient(eq(code))).thenReturn(null);
+		when(patientBrowserManagerMock.getPatientById(eq(code))).thenReturn(null);
 		
 		this.mockMvc
 		.perform(
@@ -449,7 +452,7 @@ public class PatientControllerTest {
 		String name = "unexistent_name";
 		String request = "/patients/search";
 				
-		when(patientBrowserManagerMock.getPatient(eq(name))).thenReturn(null);
+		when(patientBrowserManagerMock.getPatientByName(eq(name))).thenReturn(null);
 		
 		this.mockMvc
 			.perform(
@@ -472,7 +475,7 @@ public class PatientControllerTest {
 		Patient	patient = PatientHelper.setup();
 		patient.setCode(code);
 				
-		when(patientBrowserManagerMock.getPatient(eq(code))).thenReturn(patient);
+		when(patientBrowserManagerMock.getPatientById(eq(code))).thenReturn(patient);
 
 		when(patientBrowserManagerMock.deletePatient(eq(patient))).thenReturn(true);
 		
@@ -495,7 +498,7 @@ public class PatientControllerTest {
 		Integer code = 111;
 		String request = "/patients/{code}";
 				
-		when(patientBrowserManagerMock.getPatient(eq(code))).thenReturn(null);
+		when(patientBrowserManagerMock.getPatientById(eq(code))).thenReturn(null);
 		
 		this.mockMvc
 			.perform(
@@ -517,7 +520,7 @@ public class PatientControllerTest {
 		Patient	patient = PatientHelper.setup();
 		patient.setCode(code);
 				
-		when(patientBrowserManagerMock.getPatient(eq(code))).thenReturn(patient);
+		when(patientBrowserManagerMock.getPatientById(eq(code))).thenReturn(patient);
 
 		when(patientBrowserManagerMock.deletePatient(eq(patient))).thenReturn(false);
 		
