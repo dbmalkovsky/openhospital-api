@@ -121,8 +121,8 @@ public class AdmissionControllerTest {
 	@Autowired
 	private AdmittedPatientMapper admittedMapper = new AdmittedPatientMapper();
 
-	@Autowired
-	private DischargeTypeBrowserManager dischargeManager = new DischargeTypeBrowserManager();
+	//@Autowired
+	//private DischargeTypeBrowserManager dischargeManager = new DischargeTypeBrowserManager();
 
 	@Autowired
 	private DischargeTypeMapper dischargeMapper = new DischargeTypeMapper();
